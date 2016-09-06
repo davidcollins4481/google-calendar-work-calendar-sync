@@ -1,6 +1,8 @@
 import httplib2
 import os
 import sys
+from datetime import datetime
+import pytz
 from optparse import OptionParser
 from apiclient import discovery
 import oauth2client
@@ -32,9 +34,14 @@ class Event(object):
     def parse_date(self, date_str):
         (day_name, rest) = date_str.split(',')
         pieces = rest.strip().split(' ')
-        (d,m,y,t,tz_offset) = (pieces[0], datetime.strptime(pieces[1], '%b').month, pieces[2], pieces[3], pieces[4])
-
+        (d,m,y,t) = (pieces[0], datetime.strptime(pieces[1], '%b').month, pieces[2], pieces[3])
+        is_dst = self.date_isdst(y, m, d) 
+        # intranet doesn't handle dst properly on events
+        tz_offset = '-0400' if is_dst else '-0500'
         return '{}-{}-{}T{}{}'.format(y, m, d, t, tz_offset)
+
+    def date_isdst(self, y, m, d):
+        return bool(pytz.timezone('America/New_York').dst(datetime(int(y), int(m), int(d)), is_dst=None))
 
 def get_credentials():
     """Gets valid user credentials from storage.
